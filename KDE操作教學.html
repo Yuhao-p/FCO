@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArcGIS Pro × KDE 大眾運輸可及性教學</title>
+<style>
+  :root {
+    --blue: #2563eb; --blue-dark: #1d4ed8; --blue-light: #eff6ff;
+    --green: #16a34a; --green-light: #f0fdf4;
+    --orange: #ea580c; --orange-light: #fff7ed;
+    --red: #dc2626; --red-light: #fef2f2;
+    --purple: #7c3aed; --purple-light: #f5f3ff;
+    --gray: #64748b; --gray-light: #f8fafc;
+    --border: #e2e8f0; --text: #1e293b; --text-muted: #64748b;
+    --card: #ffffff; --code-bg: #0f172a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; color: var(--text); line-height: 1.7; }
+
+  /* TOP HERO */
+  .hero {
+    background: linear-gradient(135deg, #0f2940 0%, #1e3a5f 40%, #1d4ed8 100%);
+    color: white; padding: 2.5rem 2rem;
+  }
+  .hero-inner { max-width: 860px; margin: 0 auto; }
+  .hero-tag { display: inline-block; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 999px; padding: 0.25rem 0.8rem; font-size: 0.78rem; font-weight: 600; margin-bottom: 0.8rem; letter-spacing: 0.5px; }
+  .hero h1 { font-size: 1.7rem; font-weight: 800; line-height: 1.3; }
+  .hero p { opacity: 0.8; margin-top: 0.5rem; font-size: 0.92rem; max-width: 600px; }
+  .hero-paper { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; padding: 0.8rem 1rem; margin-top: 1.2rem; font-size: 0.83rem; display: flex; gap: 0.8rem; align-items: flex-start; }
+  .hero-paper strong { display: block; margin-bottom: 0.2rem; }
+
+  /* PHASE NAV */
+  .phase-nav {
+    background: white; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 90;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .phase-nav-inner { max-width: 860px; margin: 0 auto; padding: 0 1.5rem; display: flex; gap: 0; overflow-x: auto; }
+  .phase-btn {
+    padding: 1rem 1.2rem; font-size: 0.85rem; font-weight: 600;
+    color: var(--text-muted); border: none; background: none; cursor: pointer;
+    border-bottom: 3px solid transparent; white-space: nowrap;
+    transition: all 0.2s; display: flex; align-items: center; gap: 0.4rem;
+  }
+  .phase-btn:hover { color: var(--blue); }
+  .phase-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+  .phase-num { width: 1.4rem; height: 1.4rem; border-radius: 50%; background: var(--border); color: var(--text-muted); font-size: 0.72rem; display: flex; align-items: center; justify-content: center; font-weight: 700; transition: all 0.2s; }
+  .phase-btn.active .phase-num { background: var(--blue); color: white; }
+  .phase-btn.done .phase-num { background: var(--green); color: white; }
+
+  /* MAIN */
+  main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+
+  /* PHASE SECTION */
+  .phase { display: none; }
+  .phase.active { display: block; }
+
+  /* SECTION TITLE */
+  .section-title {
+    display: flex; align-items: center; gap: 0.8rem;
+    margin-bottom: 1.5rem;
+  }
+  .section-icon { font-size: 1.5rem; }
+  .section-title h2 { font-size: 1.2rem; font-weight: 700; }
+  .section-title p { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.1rem; }
+
+  /* STEP CARD */
+  .step-card {
+    background: white; border: 1px solid var(--border);
+    border-radius: 14px; margin-bottom: 1.2rem;
+    overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .step-card-head {
+    display: flex; align-items: center; gap: 0.9rem;
+    padding: 1rem 1.2rem; cursor: pointer; user-select: none;
+    transition: background 0.15s;
+  }
+  .step-card-head:hover { background: var(--gray-light); }
+  .step-badge {
+    width: 2rem; height: 2rem; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.82rem; font-weight: 700; flex-shrink: 0;
+  }
+  .step-badge.blue { background: var(--blue-light); color: var(--blue); }
+  .step-badge.green { background: var(--green-light); color: var(--green); }
+  .step-badge.orange { background: var(--orange-light); color: var(--orange); }
+  .step-badge.purple { background: var(--purple-light); color: var(--purple); }
+  .step-badge.red { background: var(--red-light); color: var(--red); }
+  .step-title-text { flex: 1; }
+  .step-title-text strong { display: block; font-size: 0.95rem; }
+  .step-title-text span { font-size: 0.82rem; color: var(--text-muted); }
+  .step-chevron { color: var(--text-muted); font-size: 0.8rem; transition: transform 0.2s; }
+  .step-chevron.open { transform: rotate(180deg); }
+  .step-card-body { display: none; padding: 0 1.2rem 1.2rem; border-top: 1px solid var(--border); }
+  .step-card-body.open { display: block; }
+
+  /* CONTENT ELEMENTS */
+  .step-card-body p { font-size: 0.9rem; margin: 0.7rem 0; }
+  .step-card-body ul, .step-card-body ol { padding-left: 1.4rem; font-size: 0.9rem; }
+  .step-card-body li { margin-bottom: 0.35rem; }
+
+  /* PAPER QUOTE */
+  .paper-quote {
+    background: #faf5ff; border-left: 4px solid var(--purple);
+    border-radius: 0 8px 8px 0; padding: 0.8rem 1rem;
+    font-size: 0.85rem; color: #581c87; margin: 0.8rem 0;
+    font-style: italic;
+  }
+  .paper-quote strong { font-style: normal; display: block; margin-bottom: 0.3rem; font-size: 0.78rem; color: var(--purple); letter-spacing: 0.5px; }
+
+  /* CALLOUTS */
+  .callout { border-radius: 10px; padding: 0.8rem 1rem; font-size: 0.87rem; margin: 0.7rem 0; display: flex; gap: 0.6rem; align-items: flex-start; }
+  .callout-icon { flex-shrink: 0; font-size: 1rem; margin-top: 0.05rem; }
+  .tip { background: #eff6ff; border-left: 4px solid #3b82f6; color: #1e40af; }
+  .warn { background: #fffbeb; border-left: 4px solid #f59e0b; color: #92400e; }
+  .check { background: #f0fdf4; border-left: 4px solid #22c55e; color: #14532d; }
+  .info { background: #f0f9ff; border-left: 4px solid #0ea5e9; color: #0c4a6e; }
+
+  /* CODE */
+  .code { background: var(--code-bg); color: #e2e8f0; border-radius: 10px; padding: 1rem 1.2rem; font-family: 'Fira Code', 'Courier New', monospace; font-size: 0.82rem; line-height: 1.8; overflow-x: auto; position: relative; margin: 0.7rem 0; }
+  .code .c { color: #475569; } .code .k { color: #93c5fd; } .code .s { color: #86efac; } .code .f { color: #fde68a; } .code .n { color: #f9a8d4; } .code .v { color: #fca5a5; }
+  .copy-btn { position: absolute; top: 0.6rem; right: 0.7rem; background: rgba(255,255,255,0.1); border: none; color: #94a3b8; padding: 0.28rem 0.6rem; border-radius: 6px; cursor: pointer; font-size: 0.73rem; transition: all 0.2s; }
+  .copy-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+  .copy-btn.ok { color: #86efac; }
+
+  /* SETTINGS TABLE */
+  .settings-table { width: 100%; border-collapse: collapse; font-size: 0.87rem; margin: 0.8rem 0; }
+  .settings-table th { background: #f1f5f9; font-weight: 600; padding: 0.6rem 0.8rem; text-align: left; border: 1px solid var(--border); }
+  .settings-table td { padding: 0.55rem 0.8rem; border: 1px solid var(--border); vertical-align: top; }
+  .settings-table .val { font-family: 'Courier New', monospace; font-size: 0.85rem; background: #f8fafc; }
+  .settings-table tr:nth-child(even) td { background: #f8fafc; }
+
+  /* RADIUS COMPARISON */
+  .radius-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 0.8rem; margin: 0.8rem 0; }
+  .radius-card { background: white; border: 2px solid var(--border); border-radius: 10px; padding: 0.9rem; text-align: center; }
+  .radius-card.recommended { border-color: var(--blue); }
+  .radius-card .r-num { font-size: 1.4rem; font-weight: 800; color: var(--blue); }
+  .radius-card .r-unit { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
+  .radius-card .r-desc { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem; line-height: 1.4; }
+  .radius-card .r-badge { display: inline-block; background: var(--blue-light); color: var(--blue); font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; margin-top: 0.4rem; }
+
+  /* FORMULA BOX */
+  .formula-box {
+    background: #0f172a; border-radius: 12px; padding: 1.2rem 1.5rem;
+    text-align: center; margin: 1rem 0; color: #e2e8f0;
+    font-family: 'Georgia', serif;
+  }
+  .formula-box .formula { font-size: 1.05rem; line-height: 2; }
+  .formula-box .formula-label { font-size: 0.78rem; color: #64748b; margin-top: 0.5rem; }
+
+  /* SCREENSHOT GUIDE */
+  .ui-guide { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin: 0.8rem 0; }
+  .ui-guide-title { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 0.6rem; text-transform: uppercase; }
+  .ui-step { display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 0.5rem; font-size: 0.88rem; }
+  .ui-num { width: 1.3rem; height: 1.3rem; border-radius: 50%; background: var(--blue); color: white; font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 0.1rem; }
+  .ui-key { display: inline-block; background: white; border: 1.5px solid var(--border); border-radius: 4px; padding: 0.1rem 0.4rem; font-family: monospace; font-size: 0.82rem; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+  .ui-arrow { color: var(--text-muted); margin: 0 0.2rem; }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: white; border-top: 1px solid var(--border);
+    padding: 0.8rem 1.5rem; display: flex; align-items: center;
+    justify-content: space-between; z-index: 89;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.07);
+  }
+  .bottom-nav-dots { display: flex; gap: 0.4rem; align-items: center; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); cursor: pointer; transition: all 0.2s; }
+  .dot.done { background: var(--green); }
+  .dot.active { background: var(--blue); width: 20px; border-radius: 4px; }
+  .nav-btn { padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.88rem; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; }
+  .nav-primary { background: var(--blue); color: white; }
+  .nav-primary:hover { background: var(--blue-dark); }
+  .nav-secondary { background: white; color: var(--text); border: 1.5px solid var(--border); }
+  .nav-secondary:hover { background: var(--gray-light); }
+  .nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .phase-label { font-size: 0.82rem; color: var(--text-muted); font-weight: 600; }
+
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 1.3rem; }
+    .radius-cards { grid-template-columns: 1fr; }
+    main { padding: 1.2rem 1rem 5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-tag">📄 論文方法對照教學</div>
+    <h1>大眾運輸可及性分析<br>Kernel Density × ArcGIS Pro 操作手冊</h1>
+    <p>完全對照 Carroll et al. (2021) 的研究方法，一步一步在 ArcGIS Pro 重現</p>
+    <div class="hero-paper">
+      <span style="font-size:1.3rem">📑</span>
+      <div>
+        <strong>Carroll, P., Benevenuto, R., & Caulfield, B. (2021)</strong>
+        Identifying hotspots of transport disadvantage and car dependency in rural Ireland.
+        <em>Transport Policy, 101, 46–56.</em>
+        — 本教學完全依照此論文 Section 3.1 的方法實作
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="phase-nav">
+  <div class="phase-nav-inner">
+    <button class="phase-btn active" onclick="goPhase(0)"><span class="phase-num">1</span>準備資料</button>
+    <button class="phase-btn" onclick="goPhase(1)"><span class="phase-num">2</span>匯入 ArcGIS Pro</button>
+    <button class="phase-btn" onclick="goPhase(2)"><span class="phase-num">3</span>執行 KDE</button>
+    <button class="phase-btn" onclick="goPhase(3)"><span class="phase-num">4</span>計算鄉鎮密度</button>
+    <button class="phase-btn" onclick="goPhase(4)"><span class="phase-num">5</span>Hot Spot 分析</button>
+    <button class="phase-btn" onclick="goPhase(5)"><span class="phase-num">6</span>出圖</button>
+  </div>
+</nav>
+
+<main>
+
+<!-- ============ PHASE 1：準備資料 ============ -->
+<div class="phase active" id="phase-0">
+  <div class="section-title">
+    <span class="section-icon">📦</span>
+    <div>
+      <h2>Phase 1：準備站點資料</h2>
+      <p>收集所有公共運輸節點的經緯度，整合成單一 CSV</p>
+    </div>
+  </div>
+
+  <div class="paper-quote">
+    <strong>📄 論文原文（Section 3.1）</strong>
+    "The model that is proposed applies a Kernel Density (KD) function… This approach allows converting a <strong>point-based dataset</strong> into an area-based measure that can be aggregated at the ED level."
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge blue">1.1</div>
+      <div class="step-title-text">
+        <strong>下載各類交通站點資料</strong>
+        <span>臺鐵、高鐵、捷運、公路客運、市區公車</span>
+      </div>
+      <span class="step-chevron open">▼</span>
+    </div>
+    <div class="step-card-body open">
+      <table class="settings-table">
+        <tr><th>交通類型</th><th>下載網址</th><th>格式</th><th>優先順序</th></tr>
+        <tr>
+          <td>🚆 臺鐵站點</td>
+          <td><a href="https://data.gov.tw/dataset/33425" target="_blank" style="color:var(--blue)">data.gov.tw「臺鐵車站」</a></td>
+          <td class="val">CSV / JSON</td>
+          <td>⭐⭐⭐ 必備</td>
+        </tr>
+        <tr>
+          <td>🚄 高鐵站點</td>
+          <td><a href="https://data.gov.tw" target="_blank" style="color:var(--blue)">data.gov.tw「高鐵車站」</a></td>
+          <td class="val">CSV</td>
+          <td>⭐⭐⭐ 必備</td>
+        </tr>
+        <tr>
+          <td>🚇 捷運站點</td>
+          <td><a href="https://data.taipei/" target="_blank" style="color:var(--blue)">data.taipei、data.kcg.gov.tw</a></td>
+          <td class="val">CSV</td>
+          <td>⭐⭐⭐ 必備</td>
+        </tr>
+        <tr>
+          <td>🚌 公路客運站牌</td>
+          <td><a href="https://ptx.transportdata.tw/" target="_blank" style="color:var(--blue)">交通部 PTX 平台</a></td>
+          <td class="val">JSON / CSV</td>
+          <td>⭐⭐ 建議</td>
+        </tr>
+        <tr>
+          <td>🚍 市區公車站牌</td>
+          <td>PTX 或各縣市開放資料</td>
+          <td class="val">JSON / CSV</td>
+          <td>⭐ 時間充裕再加</td>
+        </tr>
+      </table>
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <span>市區公車站牌資料龐大（全台可能超過 10 萬筆），如果時間有限，先用<strong>軌道 + 公路客運</strong>就夠做分析。Carroll et al. 也是先用主要幹線，再加入 RTP 地方路線做比較。</span>
+      </div>
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <span>每份資料下載後，確認有 <strong>經度（longitude）</strong> 和 <strong>緯度（latitude）</strong> 欄位，格式為 WGS84 十進位度（例：121.5654, 25.0330）。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge blue">1.2</div>
+      <div class="step-title-text">
+        <strong>Python：整合所有站點成單一 CSV</strong>
+        <span>統一欄位格式，方便 ArcGIS 匯入</span>
+      </div>
+      <span class="step-chevron">▼</span>
+    </div>
+    <div class="step-card-body">
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <span>如果你已經手動整理好所有站點成一份 Excel，可以跳過此步驟，直接進入 Phase 2。</span>
+      </div>
+      <div class="code">
+        <button class="copy-btn" onclick="cp(this)">複製</button>
+<span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">import</span> os
+
+<span class="c"># ── 讀取各類站點（欄位名稱依你的實際資料調整）──</span>
+files = {
+    <span class="s">'TRA'</span>:  <span class="s">'tra_stations.csv'</span>,    <span class="c"># 臺鐵</span>
+    <span class="s">'THSR'</span>: <span class="s">'thsr_stations.csv'</span>,   <span class="c"># 高鐵</span>
+    <span class="s">'MRT'</span>:  <span class="s">'mrt_stations.csv'</span>,    <span class="c"># 捷運 / 輕軌</span>
+    <span class="s">'BUS'</span>:  <span class="s">'bus_stops.csv'</span>,       <span class="c"># 公路客運</span>
+}
+
+<span class="c"># ── 欄位對應表（你的 CSV 裡的緯度/經度欄位名稱）──</span>
+col_map = {
+    <span class="c"># 'TRA': {'lat': '緯度', 'lon': '經度'},</span>
+    <span class="c"># 如果欄位名一樣就不用改，若不同請在這裡指定</span>
+}
+
+dfs = []
+<span class="k">for</span> t, fname <span class="k">in</span> files.items():
+    <span class="k">if not</span> os.path.exists(fname):
+        <span class="f">print</span>(<span class="s">f'⚠️  找不到 {fname}，跳過'</span>)
+        <span class="k">continue</span>
+    df = pd.<span class="f">read_csv</span>(fname, encoding=<span class="s">'utf-8-sig'</span>)
+
+    <span class="c"># 統一欄位名稱 → latitude / longitude</span>
+    rename = col_map.get(t, {})
+    <span class="k">if</span> rename:
+        df = df.<span class="f">rename</span>(columns=rename)
+
+    df[<span class="s">'type'</span>] = t
+    dfs.<span class="f">append</span>(df[[<span class="s">'latitude'</span>, <span class="s">'longitude'</span>, <span class="s">'type'</span>]])
+
+<span class="c"># ── 合併並移除座標空值 ──</span>
+all_stops = pd.<span class="f">concat</span>(dfs, ignore_index=<span class="k">True</span>).<span class="f">dropna</span>(subset=[<span class="s">'latitude'</span>, <span class="s">'longitude'</span>])
+
+<span class="c"># ── 移除座標範圍不合理的點（臺灣本島大致範圍）──</span>
+all_stops = all_stops[
+    (all_stops[<span class="s">'latitude'</span>].between(<span class="n">21.8</span>, <span class="n">25.4</span>)) &
+    (all_stops[<span class="s">'longitude'</span>].between(<span class="n">119.3</span>, <span class="n">122.1</span>))
+]
+
+all_stops.<span class="f">to_csv</span>(<span class="s">'all_transit_stops.csv'</span>, index=<span class="k">False</span>, encoding=<span class="s">'utf-8-sig'</span>)
+<span class="f">print</span>(<span class="s">f'✅ 完成！共 {len(all_stops):,} 個站點'</span>)
+<span class="f">print</span>(all_stops[<span class="s">'type'</span>].<span class="f">value_counts</span>())
+      </div>
+      <div class="callout check">
+        <span class="callout-icon">✅</span>
+        <span>執行後應看到：<code>all_transit_stops.csv</code>，包含 latitude、longitude、type 三欄，幾百到幾萬筆不等。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge blue">1.3</div>
+      <div class="step-title-text">
+        <strong>下載鄉鎮市區界 Shapefile</strong>
+        <span>用於後續 Zonal Statistics 計算各區平均密度</span>
+      </div>
+      <span class="step-chevron">▼</span>
+    </div>
+    <div class="step-card-body">
+      <div class="ui-guide">
+        <div class="ui-guide-title">下載步驟</div>
+        <div class="ui-step"><div class="ui-num">1</div><span>前往 <a href="https://whgis-nlsc.moi.gov.tw/Opendata/Files.aspx" target="_blank" style="color:var(--blue)">內政部國土測繪中心開放資料</a></span></div>
+        <div class="ui-step"><div class="ui-num">2</div><span>搜尋「<strong>鄉鎮市區界線</strong>」</span></div>
+        <div class="ui-step"><div class="ui-num">3</div><span>選擇 <strong>TWD97 TM2 坐標系</strong> 版本下載 ZIP</span></div>
+        <div class="ui-step"><div class="ui-num">4</div><span>解壓縮後確認資料夾內有：<code>.shp</code> <code>.dbf</code> <code>.shx</code> <code>.prj</code> 四個檔案</span></div>
+      </div>
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <span>注意：臺灣的鄉鎮市區對應愛爾蘭論文中的 <strong>Electoral District (ED)</strong>。共約 368 個鄉鎮市區。</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PHASE 2：匯入 ArcGIS Pro ============ -->
+<div class="phase" id="phase-1">
+  <div class="section-title">
+    <span class="section-icon">🗂️</span>
+    <div>
+      <h2>Phase 2：匯入 ArcGIS Pro</h2>
+      <p>將 CSV 站點資料轉換為空間圖層，並設定正確的座標系統</p>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge green">2.1</div>
+      <div class="step-title-text">
+        <strong>新建 ArcGIS Pro 專案</strong>
+        <span>建立乾淨的工作環境</span>
+      </div>
+      <span class="step-chevron open">▼</span>
+    </div>
+    <div class="step-card-body open">
+      <div class="ui-guide">
+        <div class="ui-guide-title">ArcGIS Pro 操作</div>
+        <div class="ui-step"><div class="ui-num">1</div><span>開啟 ArcGIS Pro → 選 <strong>Map</strong> 模板 → 命名為 <code>FCO_Transit_Analysis</code></span></div>
+        <div class="ui-step"><div class="ui-num">2</div><span>上方功能列 → <strong>Project</strong> → <strong>Options</strong> → <strong>Current Settings</strong> → 確認預設 Geodatabase 路徑</span></div>
+        <div class="ui-step"><div class="ui-num">3</div><span>在 Catalog 面板：右鍵 <strong>Folders</strong> → Add Folder Connection → 選到你放資料的資料夾</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge green">2.2</div>
+      <div class="step-title-text">
+        <strong>匯入站點 CSV → 建立 Point 圖層</strong>
+        <span>XY Point Data → 轉存為 Shapefile（TWD97）</span>
+      </div>
+      <span class="step-chevron">▼</span>
+    </div>
+    <div class="step-card-body">
+      <div class="ui-guide">
+        <div class="ui-guide-title">操作步驟</div>
+        <div class="ui-step"><div class="ui-num">1</div><span>上方 <span class="ui-key">Map</span> 標籤 → <span class="ui-key">Add Data</span> → 選 <strong>XY Point Data</strong></span></div>
+        <div class="ui-step"><div class="ui-num">2</div><span>選取 <code>all_transit_stops.csv</code></span></div>
+        <div class="ui-step"><div class="ui-num">3</div><span>X Field 設為 <code>longitude</code>，Y Field 設為 <code>latitude</code></span></div>
+        <div class="ui-step"><div class="ui-num">4</div><span>Coordinate System 選 <strong>GCS WGS 1984（EPSG:4326）</strong> → 點 OK</span></div>
+        <div class="ui-step"><div class="ui-num">5</div><span>地圖上確認點位出現在臺灣範圍內（縮放看看有無異常點）</span></div>
+      </div>
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <span>此時是暫時圖層（XY Event Layer），必須「轉存」才能用來分析。繼續下一步。</span>
+      </div>
+      <div class="ui-guide" style="margin-top:0.8rem;">
+        <div class="ui-guide-title">轉存為永久 Shapefile</div>
+        <div class="ui-step"><div class="ui-num">6</div><span>Contents 面板 → 右鍵站點圖層 → <strong>Data</strong> → <strong>Export Features</strong></span></div>
+        <div class="ui-step"><div class="ui-num">7</div><span>Output Feature Class 命名：<code>transit_stops_TWD97</code></span></div>
+        <div class="ui-step"><div class="ui-num">8</div><span>⭐ 重要：點 Environments 標籤 → <strong>Output Coordinate System</strong> 改為 <strong>TWD97 TM2 Zone 121（EPSG:3826）</strong></span></div>
+        <div class="ui-step"><div class="ui-num">9</div><span>點 Run</span></div>
+      </div>
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <span>座標系統必須轉成 <strong>TWD97 TM2（投影坐標，單位：公尺）</strong>，否則 KDE 的 Search Radius 輸入「5000」時系統會以為是 5000 度，分析結果會完全錯誤！</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge green">2.3</div>
+      <div class="step-title-text">
+        <strong>載入鄉鎮市區界並確認座標系統</strong>
+        <span>確保兩個圖層座標系統一致</span>
+      </div>
+      <span class="step-chevron">▼</span>
+    </div>
+    <div class="step-card-body">
+      <div class="ui-guide">
+        <div class="ui-guide-title">操作步驟</div>
+        <div class="ui-step"><div class="ui-num">1</div><span><span class="ui-key">Map</span> → <span class="ui-key">Add Data</span> → 選取鄉鎮市區 <code>.shp</code></span></div>
+        <div class="ui-step"><div class="ui-num">2</div><span>右鍵圖層 → <strong>Properties</strong> → <strong>Source</strong>，確認 Projected Coordinate System 是 <strong>TWD97 TM2</strong></span></div>
+        <div class="ui-step"><div class="ui-num">3</div><span>右鍵圖層 → <strong>Attribute Table</strong>，確認有鄉鎮市區代碼欄位（通常叫 <code>TOWNCODE</code> 或 <code>TOWN_ID</code>）</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PHASE 3：KDE ============ -->
+<div class="phase" id="phase-2">
+  <div class="section-title">
+    <span class="section-icon">🌊</span>
+    <div>
+      <h2>Phase 3：執行 Kernel Density 分析</h2>
+      <p>論文核心步驟——將點位資料轉換為連續密度面</p>
+    </div>
+  </div>
+
+  <div class="paper-quote">
+    <strong>📄 論文公式（Equation 1）</strong>
+    Zⱼ = <em>1/(dist_max)² × Σ (3/π) × (1 − (distᵢ/dist_max)²)²</em>，若 distᵢ &lt; dist_max；否則為 0<br>
+    <span style="font-style:normal; font-size:0.82rem; color:#7e22ce; margin-top:0.4rem; display:block">「This formula draws upon the <strong>quartic kernel function</strong> proposed by Silverman (1986) and it is <strong>automatically utilised when KD maps are generated by means of ArcGIS</strong>.」</span>
+  </div>
+
+  <div class="callout check" style="margin-bottom:1rem;">
+    <span class="callout-icon">✅</span>
+    <span>好消息：ArcGIS Pro 的 Kernel Density 工具預設就是用 quartic kernel（四次核函數），<strong>不需要額外設定</strong>，直接跑就和論文公式一致。</span>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge orange">3.1</div>
+      <div class="step-title-text">
+        <strong>確認 Spatial Analyst 授權已啟用</strong>
+        <span>Kernel Density 需要此授權才能執行</span>
+      </div>
+      <span class="step-chevron open">▼</span>
+    </div>
+    <div class="step-card-body open">
+      <div class="ui-guide">
+        <div class="ui-guide-title">確認方式</div>
+        <div class="ui-step"><div class="ui-num">1</div><span>上方 <span class="ui-key">Project</span> → <span class="ui-key">Licensing</span></span></div>
+        <div class="ui-step"><div class="ui-num">2</div><span>找到 <strong>Spatial Analyst</strong> → 確認勾選（若未勾選，點勾後重啟 ArcGIS Pro）</span></div>
+      </div>
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <span>沒有 Spatial Analyst 會看到「License is not available」錯誤。若學校授權沒有包含，可以向老師或系辦申請或用 ArcGIS Pro 試用版（含 Spatial Analyst）。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge orange">3.2</div>
+      <div class="step-title-text">
+        <strong>論文三種 Search Radius 說明</strong>
+        <span>Carroll et al. 測試了 5km、10km、15km 做敏感度分析</span>
+      </div>
+      <span class="step-chevron">▼</span>
+    </div>
+    <div class="step-card-body">
+      <div class="paper-quote">
+        <strong>📄 論文 Section 3.1</strong>
+        "…this section aims to propose an alternative model to estimate the level of public transport availability… sensitivity analysis was conducted across three search radii (5 km, 10 km, 15 km)."
+      </div>
+
+      <div class="radius-cards">
+        <div class="radius-card">
+          <div class="r-num">5</div><div class="r-unit">公里</div>
+          <div class="r-desc">步行/自行車可及範圍，適合都市密集地區</div>
+        </div>
+        <div class="radius-card recommended">
+          <div class="r-num" style="color:#ea580c">10</div><div class="r-unit">公里</div>
+          <div class="r-desc">論文推薦主要半徑，平衡城鄉差異</div>
+          <div class="r-badge">論文推薦</div>
+        </div>
+        <div class="radius-card">
+          <div class="r-num">15</div><div class="r-unit">公里</div>
+          <div class="r-desc">開車可及範圍，適合鄉村偏遠地區</div>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <span><strong>建議你們三個半徑都跑！</strong>對應論文 Table 3 的做法，可以測試臺灣結果在不同半徑下是否穩定，這也是一個很好的報告亮點。先跑 10km，再跑另外兩個做比較。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge orange">3.3</div>
+      <div class="step-title-text">
+        <strong>執行 Kernel Density（詳細設定）</strong>
+        <span>ArcGIS Pro Geoprocessing 工具，逐欄說明</span>
+      </div>
+      <span class="step-chevron">▼</span>
+    </div>
+    <div class="step-card-body">
+      <div class="ui-guide">
+        <div class="ui-guide-title">開啟工具</div>
+        <div class="ui-step"><div class="ui-num">1</div><span>上方 <span class="ui-key">Analysis</span> → <span class="ui-key">Tools</span>（開啟 Geoprocessing 面板）</span></div>
+        <div class="ui-step"><div class="ui-num">2</div><span>搜尋框輸入 <code>Kernel Density</code>，點入工具（在 Spatial Analyst Tools → Density 下）</span></div>
+      </div>
+
+      <table class="settings-table" style="margin-top:0.8rem;">
+        <tr><th>欄位名稱</th><th>設定值</th><th>說明</th></tr>
+        <tr>
+          <td>Input Point Features</td>
+          <td class="val">transit_stops_TWD97</td>
+          <td>你的站點圖層（TWD97）</td>
+        </tr>
+        <tr>
+          <td>Population Field</td>
+          <td class="val">NONE</td>
+          <td>每個站點等權重，不加權</td>
+        </tr>
+        <tr>
+          <td>Output Raster</td>
+          <td class="val">KDE_10km</td>
+          <td>依半徑命名，方便區分</td>
+        </tr>
+        <tr>
+          <td>Output Cell Size</td>
+          <td class="val">500</td>
+          <td>每個格子 500×500 公尺，單位：公尺</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700; color:var(--orange)">Search Radius</td>
+          <td class="val" style="font-weight:700; color:var(--orange)">10000</td>
+          <td style="font-weight:700; color:var(--orange)">10 公里 = 10000 公尺（論文主要半徑）</td>
+        </tr>
+        <tr>
+          <td>Area Units</td>
+          <td class="val">SQUARE_KILOMETERS</td>
+          <td>讓密度值以「站點數/平方公里」表示</td>
+        </tr>
+        <tr>
+          <td>Out Cell Values</td>
+          <td class="val">DENSITIES</td>
+          <td>輸出密度值（預設值，不用改）</td>
+        </tr>
+        <tr>
+          <td>Method</td>
+          <td class="val">PLANAR</td>
+          <td>平面計算（投影坐標系下使用）</td>
+        </tr>
+      </table>
+
+      <div class="callout warn">
+        <span class="callout-icon">⚠️</span>
+        <span>Search Radius 的單位是圖層的單位（公尺）。10km 請輸入 <code>10000</code>，5km 輸入 <code>5000</code>，15km 輸入 <code>15000</code>。</span>
+      </div>
+
+      <div class="ui-guide" style="margin-top:0.8rem;">
+        <div class="ui-guide-title">執行其他兩個半徑（複製設定）</div>
+        <div class="ui-step"><div class="ui-num">1</div><span>點 Run 跑完 10km 後，修改 Output Raster 為 <code>KDE_5km</code>，Search Radius 改 <code>5000</code>，再 Run</span></div>
+        <div class="ui-step"><div class="ui-num">2</div><span>重複，Output Raster 為 <code>KDE_15km</code>，Search Radius 改 <code>15000</code></span></div>
+        <div class="ui-step"><div class="ui-num">3</div><span>跑完後 Contents 面板應有三個 Raster 圖層：KDE_5km、KDE_10km、KDE_15km</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge orange">3.4</div>
+      <div class="step-title-text">
+        <strong>視覺檢查 KDE 結果</strong>
+        <span>確認輸出合理，都市密集、鄉村稀疏</span>
+      </div>
+      <span class="step-chevron">▼</span>
+    </div>
+    <div class="step-card-body">
+      <ul>
+        <li>點擊 KDE_10km 圖層 → Symbology → 選 <strong>Stretch</strong>，Color Scheme 選 <strong>Green to Red</strong>（綠=高密度、紅=低密度）</li>
+        <li>縮放到台北市：應看到明顯高密度（深綠）</li>
+        <li>縮放到花東偏鄉：應看到明顯低密度（紅色）</li>
+        <li>若結果看起來全部一樣或全部空白 → 回頭檢查座標系是否正確</li>
+      </ul>
+      <div class="callout check">
+        <span class="callout-icon">✅</span>
+        <span>正常的 KDE 結果：北部都會區明顯比南部偏鄉、東部山區的密度高。若結果符合直覺，繼續 Phase 4。</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PHASE 4：Zonal Statistics ============ -->
+<div class="phase" id="phase-3">
+  <div class="section-title">
+    <span class="section-icon">📊</span>
+    <div>
+      <h2>Phase 4：計算各鄉鎮市區平均密度</h2>
+      <p>對應論文：將 Raster 密度聚合到鄉鎮市區尺度，判斷「低運輸可及性」</p>
+    </div>
+  </div>
+
+  <div class="paper-quote">
+    <strong>📄 論文原文（Section 3.1）</strong>
+    "…the <strong>average density of cells intersecting each of the 3409 EDs was then given as a new attribute in each ED.</strong> Any ED with <strong>less than at least one transport node</strong> in its average public transport density was considered to be in transport disadvantaged."
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge purple">4.1</div>
+      <div class="step-title-text">
+        <strong>執行 Zonal Statistics as Table</strong>
+        <span>計算每個鄉鎮市區範圍內 KDE 的平均值</span>
+      </div>
+      <span class="step-chevron open">▼</span>
+    </div>
+    <div class="step-card-body open">
+      <div class="ui-guide">
+        <div class="ui-guide-title">開啟工具</div>
+        <div class="ui-step"><div class="ui-num">1</div><span>Geoprocessing → 搜尋 <strong>Zonal Statistics as Table</strong>（在 Spatial Analyst → Zonal）</span></div>
+      </div>
+
+      <table class="settings-table" style="margin-top:0.8rem;">
+        <tr><th>欄位名稱</th><th>設定值</th><th>說明</th></tr>
+        <tr>
+          <td>Input Zone Feature</td>
+          <td class="val">鄉鎮市區界 Shapefile</td>
+          <td>每個鄉鎮市區是一個 Zone</td>
+        </tr>
+        <tr>
+          <td>Zone Field</td>
+          <td class="val">TOWNCODE（或鄉鎮代碼欄）</td>
+          <td>唯一識別每個鄉鎮市區的欄位</td>
+        </tr>
+        <tr>
+          <td>Input Raster</td>
+          <td class="val">KDE_10km</td>
+          <td>先用 10km 版本</td>
+        </tr>
+        <tr>
+          <td>Output Table</td>
+          <td class="val">ZonalStats_10km</td>
+          <td>輸出統計結果表</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700; color:var(--purple)">Statistics Type</td>
+          <td class="val" style="font-weight:700; color:var(--purple)">MEAN</td>
+          <td style="font-weight:700; color:var(--purple)">對應論文：取各鄉鎮市區的平均密度值</td>
+        </tr>
+      </table>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <span>對 KDE_5km 和 KDE_15km 也各跑一次，輸出分別命名 <code>ZonalStats_5km</code>、<code>ZonalStats_15km</code>，方便後續比較三個半徑的結果。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge purple">4.2</div>
+      <div class="step-title-text">
+        <strong>Join 回鄉鎮市區 Shapefile</strong>
+        <span>把 MEAN 值連結回向量圖層，方便操作</span>
+      </div>
+      <span class="step-chevron">▼</span>
+    </div>
+    <div class="step-card-body">
+      <div class="ui-guide">
+        <div class="ui-guide-title">操作步驟</div>
+        <div class="ui-step"><div class="ui-num">1</div><span>Contents 面板 → 右鍵鄉鎮市區圖層 → <strong>Joins and Relates</strong> → <strong>Add Join</strong></span></div>
+        <div class="ui-step"><div class="ui-num">2</div><span>Input Join Field：<code>TOWNCODE</code>（鄉鎮市區代碼）</span></div>
+        <div class="ui-step"><div class="ui-num">3</div><span>Join Table：選 <code>ZonalStats_10km</code></span></div>
+        <div class="ui-step"><div class="ui-num">4</div><span>Output Join Field：<code>TOWNCODE</code></span></div>
+        <div class="ui-step"><div class="ui-num">5</div><span>OK → 右鍵圖層 → Attribute Table，確認出現 <code>MEAN</code> 欄位</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge purple">4.3</div>
+      <div class="step-title-text">
+        <strong>新增 low_PT 欄位，標示「低運輸可及性」鄉鎮</strong>
+        <span>對應論文：MEAN &lt; 1 = transport disadvantaged</span>
+      </div>
+      <span class="step-chevron">▼</span>
+    </div>
+    <div class="step-card-body">
+      <div class="paper-quote">
+        <strong>📄 論文判斷標準</strong>
+        "Any ED with <strong>less than at least one transport node</strong> in its average public transport density was considered to be in transport disadvantaged."
+        → 即 <strong>MEAN &lt; 1</strong> 的鄉鎮市區 = 低運輸可及性
+      </div>
+
+      <div class="ui-guide">
+        <div class="ui-guide-title">新增欄位操作</div>
+        <div class="ui-step"><div class="ui-num">1</div><span>Attribute Table 開啟 → 點左上角 <strong>Add Field</strong>（＋號）</span></div>
+        <div class="ui-step"><div class="ui-num">2</div><span>Name：<code>low_PT</code>，Data Type：<strong>Short Integer</strong> → Save</span></div>
+        <div class="ui-step"><div class="ui-num">3</div><span>右鍵 <code>low_PT</code> 欄位標題 → <strong>Calculate Field</strong></span></div>
+        <div class="ui-step"><div class="ui-num">4</div><span>Language：<strong>Python 3</strong>，輸入以下計算式：</span></div>
+      </div>
+
+      <div class="code">
+        <button class="copy-btn" onclick="cp(this)">複製</button>
+<span class="c"># 在 Expression 框貼上：</span>
+<span class="n">1</span> <span class="k">if</span> !MEAN! < <span class="n">1</span> <span class="k">else</span> <span class="n">0</span>
+      </div>
+
+      <div class="callout check">
+        <span class="callout-icon">✅</span>
+        <span>完成後 <code>low_PT = 1</code> 代表「低公共運輸可及性」鄉鎮，<code>low_PT = 0</code> 代表服務充足地區。可以用 <strong>Select by Attribute（where low_PT = 1）</strong> 查看共幾個鄉鎮市區被標示。</span>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <span>若 MEAN &lt; 1 的鄉鎮數量太多（超過 80%）或太少（低於 20%），可以嘗試調整閾值或換用 10km / 15km 結果，並在報告中說明你的選擇依據。</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PHASE 5：Hot Spot ============ -->
+<div class="phase" id="phase-4">
+  <div class="section-title">
+    <span class="section-icon">🔥</span>
+    <div>
+      <h2>Phase 5：Hot Spot 聚集分析（Getis-Ord Gi*）</h2>
+      <p>論文進階步驟——找出低運輸可及性的空間聚集熱區</p>
+    </div>
+  </div>
+
+  <div class="paper-quote">
+    <strong>📄 論文原文（Section 3.1）</strong>
+    "…a <strong>Hot Spot Analysis (Getis and Ord, 2010)</strong> was then undertaken by means of ArcGIS. This analysis applies the <strong>Gi*-statistics methods (Ord and Getis, 1995)</strong> to identify local 'pockets' where spatial autocorrelations are more likely to occur. In other words, these hotspots highlight areas with high concentration of homogeneous conditions of poor transport accessibility."
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge red">5.1</div>
+      <div class="step-title-text">
+        <strong>什麼是 Gi* 統計？為什麼要做？</strong>
+        <span>了解這個步驟的意義再操作</span>
+      </div>
+      <span class="step-chevron open">▼</span>
+    </div>
+    <div class="step-card-body open">
+      <p>KDE 告訴你每個鄉鎮市區的運輸密度數值，但不知道「低密度地區是否連成一片」。Gi* 統計回答：</p>
+      <ul style="margin:0.6rem 0 0.6rem 1.2rem;">
+        <li>某個低密度鄉鎮的<strong>周圍鄉鎮是否也都是低密度</strong>？ → Hot Spot（高聚集區）</li>
+        <li>某個低密度鄉鎮是否夾在高密度鄉鎮中間？ → 孤立點，不是聚集</li>
+      </ul>
+      <p>Gi* 輸出的是<strong>統計顯著性</strong>（Z-score + p-value），可以區分：<br>
+      <strong>Hot Spot（紅色）</strong>：周圍密集的高值聚集 → 運輸服務豐富<br>
+      <strong>Cold Spot（藍色）</strong>：周圍密集的低值聚集 → 運輸服務匱乏熱區</p>
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <span>對你們的研究而言，<strong>Cold Spot（藍色深色）才是重點</strong>——這些是「運輸可及性持續低落的聚集區域」，正是 FCO 最可能發生的地方。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge red">5.2</div>
+      <div class="step-title-text">
+        <strong>執行 Hot Spot Analysis</strong>
+        <span>ArcGIS Pro Geoprocessing 工具詳細設定</span>
+      </div>
+      <span class="step-chevron">▼</span>
+    </div>
+    <div class="step-card-body">
+      <div class="ui-guide">
+        <div class="ui-guide-title">開啟工具</div>
+        <div class="ui-step"><div class="ui-num">1</div><span>Geoprocessing → 搜尋 <strong>Hot Spot Analysis (Getis-Ord Gi*)</strong>（在 Spatial Statistics Tools → Mapping Clusters）</span></div>
+      </div>
+
+      <table class="settings-table" style="margin-top:0.8rem;">
+        <tr><th>欄位名稱</th><th>設定值</th><th>說明</th></tr>
+        <tr>
+          <td>Input Feature Class</td>
+          <td class="val">鄉鎮市區圖層（已有 MEAN 欄）</td>
+          <td>含 KDE 平均密度的鄉鎮市區向量圖層</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700; color:var(--red)">Input Field</td>
+          <td class="val" style="font-weight:700; color:var(--red)">MEAN</td>
+          <td style="font-weight:700; color:var(--red)">使用 KDE 平均密度做聚集分析</td>
+        </tr>
+        <tr>
+          <td>Output Feature Class</td>
+          <td class="val">HotSpot_Transit_10km</td>
+          <td>依半徑命名</td>
+        </tr>
+        <tr>
+          <td>Conceptualization of Spatial Relationships</td>
+          <td class="val">CONTIGUITY_EDGES_CORNERS</td>
+          <td>相鄰邊或角接觸的鄉鎮互為鄰居，適合行政區多邊形</td>
+        </tr>
+        <tr>
+          <td>Distance Band</td>
+          <td class="val">（留空，自動計算）</td>
+          <td>使用 CONTIGUITY 時不需填距離</td>
+        </tr>
+        <tr>
+          <td>False Discovery Rate Correction</td>
+          <td class="val">✅ 勾選</td>
+          <td>校正多重比較問題，提升統計嚴謹性</td>
+        </tr>
+      </table>
+
+      <div class="callout check">
+        <span class="callout-icon">✅</span>
+        <span>Run 完後，圖層會自動用紅（Hot）到藍（Cold）顯示。<strong>深藍色（99% 信心水準）的 Cold Spot 鄉鎮</strong>就是運輸服務嚴重不足的聚集區域，對應論文 Fig. 6 右圖。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge red">5.3</div>
+      <div class="step-title-text">
+        <strong>解讀 Hot Spot 輸出欄位</strong>
+        <span>Gi_Bin 欄位是你最需要的判斷依據</span>
+      </div>
+      <span class="step-chevron">▼</span>
+    </div>
+    <div class="step-card-body">
+      <table class="settings-table">
+        <tr><th>Gi_Bin 值</th><th>顏色</th><th>意義</th><th>對 FCO 研究的意義</th></tr>
+        <tr><td><strong>+3</strong></td><td style="background:#dc2626;color:white;text-align:center">深紅</td><td>Hot Spot，99% 信心</td><td>運輸服務豐富聚集區</td></tr>
+        <tr><td><strong>+2</strong></td><td style="background:#f97316;color:white;text-align:center">橙</td><td>Hot Spot，95% 信心</td><td>↑</td></tr>
+        <tr><td><strong>+1</strong></td><td style="background:#fde68a;text-align:center">淡黃</td><td>Hot Spot，90% 信心</td><td>↑</td></tr>
+        <tr><td><strong>0</strong></td><td style="background:#e2e8f0;text-align:center">灰</td><td>不顯著</td><td>無明顯聚集</td></tr>
+        <tr><td style="color:var(--blue);font-weight:700">-1</td><td style="background:#bfdbfe;text-align:center">淡藍</td><td>Cold Spot，90% 信心</td><td>運輸服務匱乏聚集區</td></tr>
+        <tr><td style="color:var(--blue);font-weight:700">-2</td><td style="background:#3b82f6;color:white;text-align:center">藍</td><td>Cold Spot，95% 信心</td><td>↓</td></tr>
+        <tr><td style="color:var(--blue);font-weight:700"><strong>-3</strong></td><td style="background:#1e3a8a;color:white;text-align:center">深藍</td><td>Cold Spot，99% 信心</td><td>⭐ FCO 高風險聚集核心</td></tr>
+      </table>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <span>在後續地圖 5（FCO 熱區）整合時，可以用 <code>Gi_Bin &lt;= -1</code> 作為「低運輸可及性」的判斷條件，比單純用 MEAN &lt; 1 更有統計依據，也更符合論文方法。</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PHASE 6：出圖 ============ -->
+<div class="phase" id="phase-5">
+  <div class="section-title">
+    <span class="section-icon">🖨️</span>
+    <div>
+      <h2>Phase 6：版面配置與出圖</h2>
+      <p>製作符合學術報告品質的地圖輸出</p>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge blue">6.1</div>
+      <div class="step-title-text">
+        <strong>製作「公共運輸節點密度圖」（KDE Raster）</strong>
+        <span>對應論文 Fig. 4 左側的密度面圖</span>
+      </div>
+      <span class="step-chevron open">▼</span>
+    </div>
+    <div class="step-card-body open">
+      <div class="ui-guide">
+        <div class="ui-guide-title">配色設定</div>
+        <div class="ui-step"><div class="ui-num">1</div><span>右鍵 KDE_10km → <strong>Symbology</strong></span></div>
+        <div class="ui-step"><div class="ui-num">2</div><span>選 <strong>Stretch</strong> → Color Scheme 選 <strong>Green-Yellow-Red（反轉）</strong><br>→ 綠色=低密度（運輸不足）、紅色=高密度（運輸充足）<br><em>注意：這裡直覺上可能相反，請確認低值對應哪個顏色</em></span></div>
+        <div class="ui-step"><div class="ui-num">3</div><span>在 Symbology 的 Statistics 欄設定 Stretch Type 為 <strong>Minimum Maximum</strong></span></div>
+      </div>
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <span>論文建議的色系：低密度用<span style="color:#2563eb;font-weight:700">藍色</span>（對應「Cold」/不足），高密度用<span style="color:#dc2626;font-weight:700">紅色</span>，這樣和後面 Hot Spot 圖的配色邏輯一致。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge blue">6.2</div>
+      <div class="step-title-text">
+        <strong>Layout 版面配置</strong>
+        <span>加入圖例、比例尺、標題</span>
+      </div>
+      <span class="step-chevron">▼</span>
+    </div>
+    <div class="step-card-body">
+      <div class="ui-guide">
+        <div class="ui-guide-title">操作步驟</div>
+        <div class="ui-step"><div class="ui-num">1</div><span>上方 <span class="ui-key">Insert</span> → <span class="ui-key">New Layout</span> → 選 <strong>A4 Landscape</strong></span></div>
+        <div class="ui-step"><div class="ui-num">2</div><span><span class="ui-key">Insert</span> → <strong>Map Frame</strong> → 拖曳到版面左側約 2/3 區域</span></div>
+        <div class="ui-step"><div class="ui-num">3</div><span><span class="ui-key">Insert</span> → <strong>Legend</strong> → 放右下角，只保留 KDE / Hot Spot 圖層的圖例</span></div>
+        <div class="ui-step"><div class="ui-num">4</div><span><span class="ui-key">Insert</span> → <strong>Scale Bar</strong> → 選公里單位（Kilometers）</span></div>
+        <div class="ui-step"><div class="ui-num">5</div><span><span class="ui-key">Insert</span> → <strong>North Arrow</strong> → 放右上角</span></div>
+        <div class="ui-step"><div class="ui-num">6</div><span><span class="ui-key">Insert</span> → <strong>Text</strong>：輸入圖標題與資料來源說明</span></div>
+      </div>
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <span>建議在圖說加上：「Search Radius = 10 km」，讓讀者清楚知道使用的參數。若你們有做三種半徑比較，可以把三張小圖放在同一 Layout 裡排列。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge blue">6.3</div>
+      <div class="step-title-text">
+        <strong>輸出地圖檔案</strong>
+        <span>PDF 300 DPI，符合學術報告品質</span>
+      </div>
+      <span class="step-chevron">▼</span>
+    </div>
+    <div class="step-card-body">
+      <div class="ui-guide">
+        <div class="ui-guide-title">操作步驟</div>
+        <div class="ui-step"><div class="ui-num">1</div><span>確認 Layout 視窗是作用中 → 上方 <span class="ui-key">Share</span> → <span class="ui-key">Export Layout</span></span></div>
+        <div class="ui-step"><div class="ui-num">2</div><span>File Type：<strong>PDF</strong>（投稿用）或 <strong>TIFF</strong>（插圖用）</span></div>
+        <div class="ui-step"><div class="ui-num">3</div><span>Resolution：<strong>300 DPI</strong></span></div>
+        <div class="ui-step"><div class="ui-num">4</div><span>命名：<code>Map2_Transit_KDE_10km.pdf</code></span></div>
+        <div class="ui-step"><div class="ui-num">5</div><span>Export</span></div>
+      </div>
+      <div class="callout check">
+        <span class="callout-icon">🏆</span>
+        <span>恭喜！地圖 2 完成。完整流程：<strong>站點資料 → KDE Raster → Zonal Statistics → 標示 low_PT → Hot Spot Gi* → 出圖</strong>，完全對應 Carroll et al. (2021) Section 3.1 的方法。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-card-head" onclick="toggle(this)">
+      <div class="step-badge blue">6.4</div>
+      <div class="step-title-text">
+        <strong>三種半徑比較表格（報告加分項）</strong>
+        <span>對應論文 Table 3 的敏感度分析</span>
+      </div>
+      <span class="step-chevron">▼</span>
+    </div>
+    <div class="step-card-body">
+      <p style="font-size:0.9rem;">論文做了 5km / 10km / 15km 三種結果的線性迴歸比較。你們可以用這個簡化版：</p>
+
+      <div class="code">
+        <button class="copy-btn" onclick="cp(this)">複製</button>
+<span class="k">import</span> pandas <span class="k">as</span> pd
+
+<span class="c"># 讀取三個半徑的 Zonal Stats 結果</span>
+r5  = pd.<span class="f">read_table</span>(<span class="s">'ZonalStats_5km.csv'</span>)[  [<span class="s">'TOWNCODE'</span>, <span class="s">'MEAN'</span>]].<span class="f">rename</span>(columns={<span class="s">'MEAN'</span>: <span class="s">'mean_5km'</span>})
+r10 = pd.<span class="f">read_table</span>(<span class="s">'ZonalStats_10km.csv'</span>)[ [<span class="s">'TOWNCODE'</span>, <span class="s">'MEAN'</span>]].<span class="f">rename</span>(columns={<span class="s">'MEAN'</span>: <span class="s">'mean_10km'</span>})
+r15 = pd.<span class="f">read_table</span>(<span class="s">'ZonalStats_15km.csv'</span>)[ [<span class="s">'TOWNCODE'</span>, <span class="s">'MEAN'</span>]].<span class="f">rename</span>(columns={<span class="s">'MEAN'</span>: <span class="s">'mean_15km'</span>})
+
+df = r5.<span class="f">merge</span>(r10, on=<span class="s">'TOWNCODE'</span>).<span class="f">merge</span>(r15, on=<span class="s">'TOWNCODE'</span>)
+
+<span class="c"># 計算各半徑被標示為「低可及性」的鄉鎮數量</span>
+<span class="k">for</span> col <span class="k">in</span> [<span class="s">'mean_5km'</span>, <span class="s">'mean_10km'</span>, <span class="s">'mean_15km'</span>]:
+    n = (df[col] < <span class="n">1</span>).<span class="f">sum</span>()
+    <span class="f">print</span>(<span class="s">f'{col}: {n} 個鄉鎮市區低可及性（占 {n/len(df):.1%}）'</span>)
+
+<span class="c"># 相關性（穩定性測試）</span>
+<span class="f">print</span>(<span class="s">'\n三種半徑相關係數：'</span>)
+<span class="f">print</span>(df[[<span class="s">'mean_5km'</span>, <span class="s">'mean_10km'</span>, <span class="s">'mean_15km'</span>]].<span class="f">corr</span>().<span class="f">round</span>(<span class="n">3</span>))
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+    <div class="bottom-nav-dots" id="dots">
+      <div class="dot active" onclick="goPhase(0)" title="Phase 1"></div>
+      <div class="dot" onclick="goPhase(1)" title="Phase 2"></div>
+      <div class="dot" onclick="goPhase(2)" title="Phase 3"></div>
+      <div class="dot" onclick="goPhase(3)" title="Phase 4"></div>
+      <div class="dot" onclick="goPhase(4)" title="Phase 5"></div>
+      <div class="dot" onclick="goPhase(5)" title="Phase 6"></div>
+    </div>
+    <span class="phase-label" id="phase-label">Phase 1：準備資料</span>
+  </div>
+  <div style="display:flex; gap:0.5rem;">
+    <button class="nav-btn nav-secondary" id="prev-btn" onclick="go(-1)" disabled>← 上一步</button>
+    <button class="nav-btn nav-primary" id="next-btn" onclick="go(1)">下一步 →</button>
+  </div>
+</div>
+
+<script>
+  let cur = 0;
+  const total = 6;
+  const labels = ['Phase 1：準備資料', 'Phase 2：匯入 ArcGIS Pro', 'Phase 3：執行 KDE', 'Phase 4：計算鄉鎮密度', 'Phase 5：Hot Spot 分析', 'Phase 6：出圖'];
+
+  function goPhase(n) {
+    document.querySelectorAll('.phase').forEach((p, i) => p.classList.toggle('active', i === n));
+    document.querySelectorAll('.phase-btn').forEach((b, i) => {
+      b.classList.toggle('active', i === n);
+      if (i < n) b.classList.add('done'); else b.classList.remove('done');
+      b.querySelectorAll('.phase-num').forEach(pn => {
+        if (i < n) pn.textContent = '✓';
+        else if (i === n) pn.textContent = n + 1;
+        else pn.textContent = i + 1;
+      });
+    });
+    const dots = document.querySelectorAll('.dot');
+    dots.forEach((d, i) => {
+      d.classList.remove('active', 'done');
+      if (i < n) d.classList.add('done');
+      else if (i === n) d.classList.add('active');
+    });
+    document.getElementById('phase-label').textContent = labels[n];
+    document.getElementById('prev-btn').disabled = n === 0;
+    document.getElementById('next-btn').textContent = n === total - 1 ? '🎉 完成！' : '下一步 →';
+    document.getElementById('next-btn').disabled = n === total - 1;
+    cur = n;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function go(d) { if (cur + d >= 0 && cur + d < total) goPhase(cur + d); }
+
+  function toggle(head) {
+    const body = head.nextElementSibling;
+    const ch = head.querySelector('.step-chevron');
+    const open = body.classList.contains('open');
+    body.classList.toggle('open', !open);
+    ch.classList.toggle('open', !open);
+  }
+
+  function cp(btn) {
+    const block = btn.parentElement;
+    const txt = block.innerText.replace(/^複製|^已複製 ✓/,'').trim();
+    navigator.clipboard.writeText(txt).then(() => {
+      btn.textContent = '已複製 ✓'; btn.classList.add('ok');
+      setTimeout(() => { btn.textContent = '複製'; btn.classList.remove('ok'); }, 2000);
+    });
+  }
+</script>
+</body>
+</html>
